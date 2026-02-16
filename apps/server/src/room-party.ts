@@ -452,11 +452,11 @@ RoomParty satisfies Party.Worker;
 
 // ---- Validation helpers ----
 
-function sanitizeName(raw: string): string {
+export function sanitizeName(raw: string): string {
   return raw.replace(/[^\w\s\-]/g, "").trim().slice(0, MAX_NAME_LENGTH);
 }
 
-function isValidClientMessage(raw: unknown): boolean {
+export function isValidClientMessage(raw: unknown): boolean {
   if (typeof raw !== "object" || raw === null) return false;
   const obj = raw as Record<string, unknown>;
   if (typeof obj.type !== "string") return false;

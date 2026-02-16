@@ -5,13 +5,16 @@
   "scripts": {
     "dev": "npx partykit dev",
     "deploy": "npx partykit deploy",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@bunko/shared": "workspace:*",
     "partykit": "^0.0.111"
   },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.18"
   }
 }
