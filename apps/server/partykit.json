@@ -1,0 +1,4 @@
+{
+  "name": "bunko-server",
+  "main": "src/room-party.ts"
+}

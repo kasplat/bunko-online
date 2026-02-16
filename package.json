@@ -1,0 +1,11 @@
+{
+  "name": "bunko-online",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' dev",
+    "build": "pnpm --filter @bunko/shared build && pnpm --parallel --filter './apps/*' build"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "workerd"]
+  }
+}
