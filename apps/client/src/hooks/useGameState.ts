@@ -43,6 +43,9 @@ export function useGameState(subscribe: (handler: MessageHandler) => () => void)
             errorTimeoutRef.current = null;
           }, 3000);
           break;
+        case "s2c:game_state":
+          // Handled in GameScreen directly
+          break;
       }
     });
   }, [subscribe]);

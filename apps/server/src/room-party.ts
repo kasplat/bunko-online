@@ -84,6 +84,9 @@ export default class RoomParty implements Party.Server {
     const msg = raw as ClientMessage;
 
     switch (msg.type) {
+      case "c2s:join_room":
+        // Handled in onConnect
+        break;
       case "c2s:select_game":
         this.handleSelectGame(sender, msg.gameId);
         break;
@@ -471,6 +474,8 @@ export function isValidClientMessage(raw: unknown): boolean {
       return true;
     case "c2s:game_input":
       return typeof obj.gameId === "string" && obj.payload !== undefined;
+    case "c2s:join_room":
+      return typeof obj.playerName === "string";
     default:
       return false;
   }
