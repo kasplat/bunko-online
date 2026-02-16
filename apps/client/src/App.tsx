@@ -10,11 +10,12 @@ import { generateRoomCode } from "@bunko/shared";
 export function App() {
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState<string | null>(null);
-  const [myId, setMyId] = useState<string | null>(null);
-
   const { send, subscribe, connected } = usePartySocket(roomCode, playerName);
   const { roomState, gameConfig, gameResults, error } =
     useGameState(subscribe);
+
+  // Server sends yourId in every room state update
+  const myId = roomState?.yourId ?? null;
 
   const handleCreate = useCallback(
     (name: string) => {
@@ -35,19 +36,7 @@ export function App() {
   const handleLeave = useCallback(() => {
     send({ type: "c2s:leave_room" });
     setRoomCode(null);
-    setMyId(null);
   }, [send]);
-
-  // Detect our player ID from the room state
-  if (roomState && !myId) {
-    // Our ID is whichever player was most recently added
-    // PartyKit connection ID is assigned on connect
-    const players = roomState.players;
-    if (players.length > 0) {
-      // Find a player whose ID we haven't seen — simplest: last one
-      setMyId(players[players.length - 1].id);
-    }
-  }
 
   // Screen routing based on room phase
   if (!roomCode) {

@@ -77,24 +77,29 @@ export class TypeRacerModule
       });
     }
 
+    const durationSecs = this.timing.maxDurationSecs;
     return {
       state: {
         text,
         players: playerMap,
         startTime: Date.now(),
-        durationSecs: 60,
+        durationSecs,
       },
-      config: { text, durationSecs: 60 },
+      config: { text, durationSecs },
     };
   }
 
   onInput(
     state: TypeRacerState,
     playerId: string,
-    input: TypeRacerInput,
+    input: unknown,
   ): TypeRacerState {
     const player = state.players.get(playerId);
     if (!player || player.finished) return state;
+
+    // Validate input shape and bounds
+    if (!isTypeRacerInput(input)) return state;
+    if (input.typed.length > state.text.length) return state;
 
     const typed = input.typed;
 
@@ -182,4 +187,12 @@ export class TypeRacerModule
     if (player) player.finished = true;
     return state;
   }
+}
+
+function isTypeRacerInput(input: unknown): input is TypeRacerInput {
+  return (
+    typeof input === "object" &&
+    input !== null &&
+    typeof (input as TypeRacerInput).typed === "string"
+  );
 }

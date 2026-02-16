@@ -7,7 +7,9 @@ import type {
   S2C_Error,
 } from "@bunko/shared";
 import type { ServerGameModule } from "./game/game-engine.js";
-import { createGameModule } from "./game/game-registry.js";
+import { createGameModule, getAvailableGames } from "./game/game-registry.js";
+
+const MAX_NAME_LENGTH = 20;
 
 interface Player {
   id: string;
@@ -29,6 +31,8 @@ export default class RoomParty implements Party.Server {
   prevGameState: unknown = null;
   tickInterval: ReturnType<typeof setInterval> | null = null;
   broadcastInterval: ReturnType<typeof setInterval> | null = null;
+  countdownTimeout: ReturnType<typeof setTimeout> | null = null;
+  resultsTimeout: ReturnType<typeof setTimeout> | null = null;
   lastTickTime = 0;
   seq = 0;
 
@@ -36,15 +40,25 @@ export default class RoomParty implements Party.Server {
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     const url = new URL(ctx.request.url);
-    const name =
-      url.searchParams.get("name") || `Player ${conn.id.slice(0, 4)}`;
+    const rawName = url.searchParams.get("name") ?? "";
+    const name = sanitizeName(rawName) || `Player ${conn.id.slice(0, 4)}`;
 
-    this.players.set(conn.id, {
-      id: conn.id,
-      name,
-      ready: false,
-      connected: true,
-    });
+    // Check if this is a reconnecting player
+    const existing = this.players.get(conn.id);
+    if (existing) {
+      existing.connected = true;
+      existing.name = name;
+      if (this.phase === "playing" && this.gameModule?.onPlayerReconnect && this.gameState) {
+        this.gameState = this.gameModule.onPlayerReconnect(this.gameState, conn.id);
+      }
+    } else {
+      this.players.set(conn.id, {
+        id: conn.id,
+        name,
+        ready: false,
+        connected: true,
+      });
+    }
 
     if (!this.hostId) {
       this.hostId = conn.id;
@@ -54,13 +68,20 @@ export default class RoomParty implements Party.Server {
   }
 
   onMessage(message: string, sender: Party.Connection) {
-    let msg: ClientMessage;
+    let raw: unknown;
     try {
-      msg = JSON.parse(message);
+      raw = JSON.parse(message);
     } catch {
       this.sendError(sender, "INVALID_MESSAGE", "Could not parse message");
       return;
     }
+
+    if (!isValidClientMessage(raw)) {
+      this.sendError(sender, "INVALID_MESSAGE", "Malformed message");
+      return;
+    }
+
+    const msg = raw as ClientMessage;
 
     switch (msg.type) {
       case "c2s:select_game":
@@ -85,9 +106,13 @@ export default class RoomParty implements Party.Server {
     const player = this.players.get(conn.id);
     if (!player) return;
 
-    if (this.phase === "playing" && this.gameModule && this.gameState) {
+    if (
+      (this.phase === "playing" || this.phase === "countdown") &&
+      this.gameModule &&
+      this.gameState
+    ) {
       player.connected = false;
-      if (this.gameModule.onPlayerDisconnect) {
+      if (this.phase === "playing" && this.gameModule.onPlayerDisconnect) {
         this.gameState = this.gameModule.onPlayerDisconnect(
           this.gameState,
           conn.id,
@@ -116,6 +141,7 @@ export default class RoomParty implements Party.Server {
       return;
     }
     if (this.phase !== "lobby") return;
+    if (typeof gameId !== "string" || !gameId) return;
 
     this.selectedGameId = gameId;
     for (const p of this.players.values()) {
@@ -128,7 +154,7 @@ export default class RoomParty implements Party.Server {
     if (this.phase !== "lobby") return;
     const player = this.players.get(sender.id);
     if (player) {
-      player.ready = ready;
+      player.ready = !!ready;
       this.broadcastRoomState();
     }
   }
@@ -143,10 +169,37 @@ export default class RoomParty implements Party.Server {
       return;
     }
 
-    const allReady = [...this.players.values()].every((p) => p.ready);
+    const connectedPlayers = [...this.players.values()].filter(
+      (p) => p.connected,
+    );
+
+    const allReady = connectedPlayers.every((p) => p.ready);
     if (!allReady) {
       this.sendError(sender, "NOT_READY", "Not all players are ready");
       return;
+    }
+
+    // Validate player count against game requirements
+    const gameMeta = getAvailableGames().find(
+      (g) => g.gameId === this.selectedGameId,
+    );
+    if (gameMeta) {
+      if (connectedPlayers.length < gameMeta.minPlayers) {
+        this.sendError(
+          sender,
+          "TOO_FEW_PLAYERS",
+          `Need at least ${gameMeta.minPlayers} players`,
+        );
+        return;
+      }
+      if (connectedPlayers.length > gameMeta.maxPlayers) {
+        this.sendError(
+          sender,
+          "TOO_MANY_PLAYERS",
+          `Maximum ${gameMeta.maxPlayers} players`,
+        );
+        return;
+      }
     }
 
     this.startGame();
@@ -192,7 +245,7 @@ export default class RoomParty implements Party.Server {
     }
 
     this.gameModule = module;
-    const playerInfos = this.getPlayerInfos();
+    const playerInfos = this.getPlayerInfos().filter((p) => p.connected);
     const { state, config } = module.init(playerInfos);
     this.gameState = state;
     this.prevGameState = null;
@@ -209,7 +262,9 @@ export default class RoomParty implements Party.Server {
       countdownSecs,
     });
 
-    setTimeout(() => {
+    this.countdownTimeout = setTimeout(() => {
+      this.countdownTimeout = null;
+      if (this.phase !== "countdown") return;
       this.phase = "playing";
       this.broadcastRoomState();
       this.broadcastGameState();
@@ -295,14 +350,19 @@ export default class RoomParty implements Party.Server {
     this.broadcastRoomState();
 
     // Return to lobby after results
-    setTimeout(() => {
+    this.resultsTimeout = setTimeout(() => {
+      this.resultsTimeout = null;
       this.phase = "lobby";
       for (const p of this.players.values()) {
         p.ready = false;
       }
       // Remove disconnected players
+      const toRemove: string[] = [];
       for (const [id, p] of this.players) {
-        if (!p.connected) this.players.delete(id);
+        if (!p.connected) toRemove.push(id);
+      }
+      for (const id of toRemove) {
+        this.players.delete(id);
       }
       this.broadcastRoomState();
     }, 5000);
@@ -325,8 +385,8 @@ export default class RoomParty implements Party.Server {
   }
 
   private broadcastRoomState() {
-    this.broadcast({
-      type: "s2c:room_state",
+    const base = {
+      type: "s2c:room_state" as const,
       seq: this.seq++,
       roomCode: this.room.id,
       phase: this.phase,
@@ -334,7 +394,12 @@ export default class RoomParty implements Party.Server {
       hostId: this.hostId ?? "",
       selectedGameId: this.selectedGameId,
       sessionScores: this.sessionScores,
-    });
+    };
+
+    // Send per-connection so each client gets their own yourId
+    for (const conn of this.room.getConnections()) {
+      conn.send(JSON.stringify({ ...base, yourId: conn.id }));
+    }
   }
 
   private broadcast(msg: ServerMessage) {
@@ -362,12 +427,51 @@ export default class RoomParty implements Party.Server {
     }
   }
 
+  private clearPendingTimeouts() {
+    if (this.countdownTimeout) {
+      clearTimeout(this.countdownTimeout);
+      this.countdownTimeout = null;
+    }
+    if (this.resultsTimeout) {
+      clearTimeout(this.resultsTimeout);
+      this.resultsTimeout = null;
+    }
+  }
+
   private cleanup() {
     this.stopTickLoop();
+    this.clearPendingTimeouts();
     this.gameModule?.dispose?.();
     this.gameModule = null;
     this.gameState = null;
+    this.phase = "lobby";
   }
 }
 
 RoomParty satisfies Party.Worker;
+
+// ---- Validation helpers ----
+
+function sanitizeName(raw: string): string {
+  return raw.replace(/[^\w\s\-]/g, "").trim().slice(0, MAX_NAME_LENGTH);
+}
+
+function isValidClientMessage(raw: unknown): boolean {
+  if (typeof raw !== "object" || raw === null) return false;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.type !== "string") return false;
+
+  switch (obj.type) {
+    case "c2s:select_game":
+      return typeof obj.gameId === "string";
+    case "c2s:ready":
+      return typeof obj.ready === "boolean";
+    case "c2s:start_game":
+    case "c2s:leave_room":
+      return true;
+    case "c2s:game_input":
+      return typeof obj.gameId === "string" && obj.payload !== undefined;
+    default:
+      return false;
+  }
+}

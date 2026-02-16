@@ -60,6 +60,7 @@ export interface S2C_RoomState extends BaseMessage {
   phase: RoomPhase;
   players: PlayerInfo[];
   hostId: string;
+  yourId: string;
   selectedGameId: string | null;
   sessionScores: Record<string, number>;
 }
