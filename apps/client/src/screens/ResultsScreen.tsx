@@ -15,7 +15,7 @@ export function ResultsScreen({ results, sessionScores, players }: Props) {
 
       {sorted.length > 0 && (
         <div className="results-table">
-          {sorted.map((r, i) => (
+          {sorted.map((r) => (
             <div key={r.playerId} className={`result-row rank-${r.rank}`}>
               <span className="rank">#{r.rank}</span>
               <span className="name">{r.playerName}</span>
