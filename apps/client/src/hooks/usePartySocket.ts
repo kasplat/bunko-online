@@ -31,8 +31,10 @@ export function usePartySocket(roomCode: string | null, playerName: string) {
         for (const handler of handlersRef.current) {
           handler(msg);
         }
-      } catch {
-        // ignore malformed messages
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn("[bunko] Failed to parse message:", err);
+        }
       }
     });
 
@@ -41,6 +43,7 @@ export function usePartySocket(roomCode: string | null, playerName: string) {
     return () => {
       socket.close();
       socketRef.current = null;
+      handlersRef.current.clear();
       setConnected(false);
     };
   }, [roomCode, playerName]);

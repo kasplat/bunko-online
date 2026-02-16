@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ServerMessage,
   S2C_RoomState,
-  S2C_GameStarting,
-  S2C_GameOver,
   GameResult,
 } from "@bunko/shared";
 
@@ -14,6 +12,7 @@ export function useGameState(subscribe: (handler: MessageHandler) => () => void)
   const [gameConfig, setGameConfig] = useState<{ gameId: string; config: unknown; countdownSecs: number } | null>(null);
   const [gameResults, setGameResults] = useState<GameResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return subscribe((msg) => {
@@ -38,7 +37,11 @@ export function useGameState(subscribe: (handler: MessageHandler) => () => void)
           break;
         case "s2c:error":
           setError(msg.message);
-          setTimeout(() => setError(null), 3000);
+          if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+          errorTimeoutRef.current = setTimeout(() => {
+            setError(null);
+            errorTimeoutRef.current = null;
+          }, 3000);
           break;
       }
     });
