@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --parallel --filter './apps/*' dev",
-    "build": "pnpm --filter @bunko/shared build && pnpm --parallel --filter './apps/*' build"
+    "build": "pnpm --filter @bunko/shared build && pnpm --parallel --filter './apps/*' build",
+    "test": "pnpm -r test"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["esbuild", "workerd"]
