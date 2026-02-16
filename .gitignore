@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.partykit/
+.context/
+*.local
+.env
+.env.*
+.DS_Store
+*.tsbuildinfo

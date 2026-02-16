@@ -1,0 +1,17 @@
+{
+  "name": "@bunko/server",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "npx partykit dev",
+    "deploy": "npx partykit deploy",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bunko/shared": "workspace:*",
+    "partykit": "^0.0.111"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
