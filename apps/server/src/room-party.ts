@@ -33,7 +33,7 @@ export default class RoomParty implements Party.Server {
   tickInterval: ReturnType<typeof setInterval> | null = null;
   broadcastInterval: ReturnType<typeof setInterval> | null = null;
   countdownTimeout: ReturnType<typeof setTimeout> | null = null;
-  resultsTimeout: ReturnType<typeof setTimeout> | null = null;
+  resultsFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
   lastTickTime = 0;
   seq = 0;
 
@@ -134,6 +134,11 @@ export default class RoomParty implements Party.Server {
 
     if (this.hostId === conn.id) {
       this.transferHost();
+      // If host disconnects during results, auto-return to lobby
+      if (this.phase === "results") {
+        this.returnToLobby();
+        return;
+      }
     }
 
     if (this.players.size === 0) {
@@ -238,24 +243,7 @@ export default class RoomParty implements Party.Server {
       return;
     }
     if (this.phase !== "results") return;
-
-    if (this.resultsTimeout) {
-      clearTimeout(this.resultsTimeout);
-      this.resultsTimeout = null;
-    }
-
-    this.phase = "lobby";
-    for (const p of this.players.values()) {
-      p.ready = false;
-    }
-    const toRemove: string[] = [];
-    for (const [id, p] of this.players) {
-      if (!p.connected) toRemove.push(id);
-    }
-    for (const id of toRemove) {
-      this.players.delete(id);
-    }
-    this.broadcastRoomState();
+    this.returnToLobby();
   }
 
   private handleGameSettings(sender: Party.Connection, gameId: string, settings: Record<string, unknown>) {
@@ -264,6 +252,7 @@ export default class RoomParty implements Party.Server {
       return;
     }
     if (this.phase !== "lobby") return;
+    if (gameId !== this.selectedGameId) return;
     this.gameSettings = settings;
     this.broadcastRoomState();
   }
@@ -399,7 +388,32 @@ export default class RoomParty implements Party.Server {
     this.phase = "results";
     this.broadcastRoomState();
 
-    // Host controls when to return to lobby via c2s:return_to_lobby
+    // Host controls return via c2s:return_to_lobby, but fallback after 60s
+    this.resultsFallbackTimeout = setTimeout(() => {
+      this.resultsFallbackTimeout = null;
+      if (this.phase === "results") {
+        this.returnToLobby();
+      }
+    }, 60_000);
+  }
+
+  private returnToLobby() {
+    if (this.resultsFallbackTimeout) {
+      clearTimeout(this.resultsFallbackTimeout);
+      this.resultsFallbackTimeout = null;
+    }
+    this.phase = "lobby";
+    for (const p of this.players.values()) {
+      p.ready = false;
+    }
+    const toRemove: string[] = [];
+    for (const [id, p] of this.players) {
+      if (!p.connected) toRemove.push(id);
+    }
+    for (const id of toRemove) {
+      this.players.delete(id);
+    }
+    this.broadcastRoomState();
   }
 
   // ---- Helpers ----
@@ -467,9 +481,9 @@ export default class RoomParty implements Party.Server {
       clearTimeout(this.countdownTimeout);
       this.countdownTimeout = null;
     }
-    if (this.resultsTimeout) {
-      clearTimeout(this.resultsTimeout);
-      this.resultsTimeout = null;
+    if (this.resultsFallbackTimeout) {
+      clearTimeout(this.resultsFallbackTimeout);
+      this.resultsFallbackTimeout = null;
     }
   }
 
