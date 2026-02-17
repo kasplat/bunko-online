@@ -5,11 +5,14 @@ const TOTAL_ROUNDS = 5;
 const MIN_DELAY_MS = 2000;
 const MAX_DELAY_MS = 5000;
 const FALSE_START_PENALTY_MS = 500;
+const FALSE_START = -1;
+const ROUND_TIMEOUT_MS = 3000;
+const ROUND_PAUSE_MS = 1500;
 
 interface PlayerState {
   id: string;
   name: string;
-  reactionTimes: number[]; // ms per round (-1 = false start, 0 = not yet)
+  reactionTimes: number[]; // ms per round (FALSE_START = false start)
   tappedThisRound: boolean;
 }
 
@@ -20,6 +23,7 @@ interface ReactionState {
   signalAt: number; // when the signal fires (roundStartedAt + random delay)
   signalShown: boolean;
   roundOver: boolean;
+  roundEndedAt: number;
   finished: boolean;
 }
 
@@ -76,6 +80,7 @@ export class ReactionSpeedModule
         signalAt: now + delay,
         signalShown: false,
         roundOver: false,
+        roundEndedAt: 0,
         finished: false,
       },
       config: { totalRounds: TOTAL_ROUNDS },
@@ -98,7 +103,7 @@ export class ReactionSpeedModule
 
     if (!state.signalShown) {
       // False start — tapped before signal
-      player.reactionTimes.push(-1);
+      player.reactionTimes.push(FALSE_START);
     } else {
       // Valid tap — record reaction time
       const reactionMs = now - state.signalAt;
@@ -111,6 +116,7 @@ export class ReactionSpeedModule
     );
     if (allTapped) {
       state.roundOver = true;
+      state.roundEndedAt = Date.now();
     }
 
     return state;
@@ -126,32 +132,23 @@ export class ReactionSpeedModule
       state.signalShown = true;
     }
 
-    // Auto-end round after 3 seconds of signal shown (timeout for slow players)
+    // Auto-end round after timeout (slow players)
     if (state.signalShown && !state.roundOver) {
-      const elapsed = now - state.signalAt;
-      if (elapsed > 3000) {
-        // Give remaining players a timeout time
+      if (now - state.signalAt > ROUND_TIMEOUT_MS) {
         for (const p of state.players.values()) {
           if (!p.tappedThisRound) {
             p.tappedThisRound = true;
-            p.reactionTimes.push(3000);
+            p.reactionTimes.push(ROUND_TIMEOUT_MS);
           }
         }
         state.roundOver = true;
+        state.roundEndedAt = now;
       }
     }
 
     // Advance to next round after a short pause
-    if (state.roundOver) {
-      const lastTapTime = Math.max(
-        ...([...state.players.values()].map((p) => {
-          const last = p.reactionTimes[p.reactionTimes.length - 1];
-          return last === -1 ? 0 : last;
-        })),
-      );
-      // Wait 1.5s after round ends before starting next
-      const roundEndTime = state.signalAt + lastTapTime;
-      if (now - roundEndTime > 1500 || now - state.signalAt > 5000) {
+    if (state.roundOver && state.roundEndedAt > 0) {
+      if (now - state.roundEndedAt > ROUND_PAUSE_MS) {
         if (state.round >= TOTAL_ROUNDS) {
           state.finished = true;
         } else {
@@ -160,6 +157,7 @@ export class ReactionSpeedModule
           state.signalAt = now + randomDelay();
           state.signalShown = false;
           state.roundOver = false;
+          state.roundEndedAt = 0;
           for (const p of state.players.values()) {
             p.tappedThisRound = false;
           }
@@ -210,11 +208,13 @@ export class ReactionSpeedModule
     return players.map((p, i) => ({
       playerId: p.id,
       playerName: p.name,
-      score: Math.max(100 - i * 20, 10),
+      score: players.length === 1
+        ? 100
+        : Math.max(Math.round(100 * (1 - i / (players.length - 1))), 10),
       rank: i + 1,
       stats: {
         avgMs: getAverageReaction(p.reactionTimes),
-        falseStarts: p.reactionTimes.filter((t) => t === -1).length,
+        falseStarts: p.reactionTimes.filter((t) => t === FALSE_START).length,
       },
     }));
   }
@@ -226,7 +226,7 @@ export class ReactionSpeedModule
     const player = state.players.get(playerId);
     if (player && !player.tappedThisRound) {
       player.tappedThisRound = true;
-      player.reactionTimes.push(3000);
+      player.reactionTimes.push(ROUND_TIMEOUT_MS);
     }
     return state;
   }
@@ -239,7 +239,7 @@ function randomDelay(): number {
 function getAverageReaction(times: number[]): number {
   if (times.length === 0) return 9999;
   const adjusted = times.map((t) =>
-    t === -1 ? FALSE_START_PENALTY_MS : t,
+    t === FALSE_START ? FALSE_START_PENALTY_MS : t,
   );
   return Math.round(adjusted.reduce((a, b) => a + b, 0) / adjusted.length);
 }

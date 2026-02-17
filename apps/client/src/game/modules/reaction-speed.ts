@@ -1,5 +1,7 @@
 import type { ClientGameModule } from "../game-renderer";
 
+const FALSE_START = -1;
+
 interface ReactionConfig {
   totalRounds: number;
 }
@@ -77,6 +79,7 @@ export class ReactionSpeedClientModule
         justify-content: center;
         cursor: pointer;
         user-select: none;
+        touch-action: manipulation;
         transition: background-color 0.1s;
       }
       .reaction-zone.waiting {
@@ -139,6 +142,9 @@ export class ReactionSpeedClientModule
   }
 
   onStateUpdate(state: ReactionState, _isDelta: boolean) {
+    const myId = this.getPlayerId?.() ?? "";
+    const me = state.players.find((p) => p.id === myId);
+
     const prevRound = this.state?.round;
     this.state = state;
 
@@ -147,9 +153,7 @@ export class ReactionSpeedClientModule
       this.tapped = false;
     }
 
-    // Also check server state for our tapped status
-    const myId = this.getPlayerId?.() ?? "";
-    const me = state.players.find((p) => p.id === myId);
+    // Sync tapped state from server (handles reconnection)
     if (me?.tappedThisRound) {
       this.tapped = true;
     }
@@ -189,7 +193,7 @@ export class ReactionSpeedClientModule
       label.textContent = "Game Over!";
     } else if (this.state.roundOver) {
       zone.classList.add("round-over");
-      if (lastTime === -1) {
+      if (lastTime === FALSE_START) {
         label.textContent = "False start!";
       } else if (lastTime !== undefined) {
         label.textContent = `${lastTime}ms`;
@@ -197,7 +201,7 @@ export class ReactionSpeedClientModule
         label.textContent = "Round over";
       }
     } else if (this.tapped) {
-      if (lastTime === -1) {
+      if (lastTime === FALSE_START) {
         zone.classList.add("false-start");
         label.textContent = "Too early!";
       } else {
@@ -235,9 +239,9 @@ export class ReactionSpeedClientModule
     results.innerHTML = this.state.players
       .map((p) => {
         const lastTime = p.reactionTimes[p.reactionTimes.length - 1];
-        const falseStarts = p.reactionTimes.filter((t) => t === -1).length;
+        const falseStarts = p.reactionTimes.filter((t) => t === FALSE_START).length;
         let timeStr = "-";
-        if (lastTime === -1) {
+        if (lastTime === FALSE_START) {
           timeStr = "False start";
         } else if (lastTime !== undefined && lastTime > 0) {
           timeStr = `${lastTime}ms`;
@@ -246,7 +250,7 @@ export class ReactionSpeedClientModule
         return `
           <div class="reaction-player-row ${p.id === myId ? "me" : ""}">
             <span class="rp-name">${escapeHtml(p.name)}</span>
-            <span class="rp-time ${lastTime === -1 ? "rp-false" : ""}">${timeStr}</span>
+            <span class="rp-time ${lastTime === FALSE_START ? "rp-false" : ""}">${timeStr}</span>
             <span class="rp-avg">avg: ${p.avgMs < 9999 ? p.avgMs + "ms" : "-"}${falseStarts > 0 ? ` (${falseStarts}x early)` : ""}</span>
           </div>
         `;
