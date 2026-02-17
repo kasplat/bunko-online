@@ -2,14 +2,33 @@ import type { PlayerInfo, GameResult } from "@bunko/shared";
 import { GAME_META } from "@bunko/shared";
 import type { ServerGameModule } from "../game-engine.js";
 
-const PARAGRAPHS = [
+const SHORT_PASSAGES = [
+  "The quick brown fox jumps over the lazy dog.",
+  "How vexingly quick daft zebras jump.",
+  "Pack my box with five dozen liquor jugs.",
+  "Six big juicy steaks sizzled in the pan.",
+  "The job requires extra pluck and zeal.",
+];
+
+const MEDIUM_PASSAGES = [
   "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.",
   "How vexingly quick daft zebras jump. The five boxing wizards jump quickly at dawn.",
   "Amazingly few discotheques provide jukeboxes. Crazy Frederick bought many very exquisite opal jewels.",
   "The wizard quickly jinxed the gnomes before they vaporized. Six big juicy steaks sizzled in the pan.",
   "Grumpy wizards make toxic brew for the evil queen and jack. The job requires extra pluck and zeal.",
-  "We promptly judged antique ivory buckles for the next prize. A quart jar of oil mixed with zinc oxide makes a bright paint.",
 ];
+
+const LONG_PASSAGES = [
+  "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump. The five boxing wizards jump quickly at dawn.",
+  "Amazingly few discotheques provide jukeboxes. Crazy Frederick bought many very exquisite opal jewels. The wizard quickly jinxed the gnomes before they vaporized. Six big juicy steaks sizzled in the pan.",
+  "We promptly judged antique ivory buckles for the next prize. A quart jar of oil mixed with zinc oxide makes a bright paint. Grumpy wizards make toxic brew for the evil queen and jack. The job requires extra pluck and zeal.",
+];
+
+const PASSAGES_BY_LENGTH: Record<string, string[]> = {
+  short: SHORT_PASSAGES,
+  medium: MEDIUM_PASSAGES,
+  long: LONG_PASSAGES,
+};
 
 interface PlayerState {
   id: string;
@@ -54,11 +73,14 @@ export class TypeRacerModule
 {
   readonly gameId = "type-racer";
 
-  init(players: PlayerInfo[]): {
+  init(players: PlayerInfo[], settings?: Record<string, unknown>): {
     state: TypeRacerState;
     config: TypeRacerConfig;
   } {
-    const text = PARAGRAPHS[Math.floor(Math.random() * PARAGRAPHS.length)];
+    const passageLength = typeof settings?.passageLength === "string" ? settings.passageLength : "medium";
+    const passages = PASSAGES_BY_LENGTH[passageLength] ?? MEDIUM_PASSAGES;
+    const text = passages[Math.floor(Math.random() * passages.length)];
+
     const playerMap = new Map<string, PlayerState>();
     for (const p of players) {
       playerMap.set(p.id, {
@@ -71,7 +93,9 @@ export class TypeRacerModule
       });
     }
 
-    const durationSecs = GAME_META[this.gameId].timing.maxDurationSecs;
+    const defaultDuration = GAME_META[this.gameId].timing.maxDurationSecs;
+    const timeLimitSecs = typeof settings?.timeLimit === "number" ? settings.timeLimit : defaultDuration;
+    const durationSecs = Math.max(15, Math.min(timeLimitSecs, 300));
     return {
       state: {
         text,

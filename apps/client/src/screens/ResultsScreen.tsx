@@ -1,13 +1,17 @@
-import type { GameResult, PlayerInfo } from "@bunko/shared";
+import type { GameResult, PlayerInfo, ClientMessagePayload } from "@bunko/shared";
 
 interface Props {
   results: GameResult[] | null;
   sessionScores: Record<string, number>;
   players: PlayerInfo[];
+  myId: string | null;
+  hostId: string;
+  send: (msg: ClientMessagePayload) => void;
 }
 
-export function ResultsScreen({ results, sessionScores, players }: Props) {
+export function ResultsScreen({ results, sessionScores, players, myId, hostId, send }: Props) {
   const sorted = results ? [...results].sort((a, b) => a.rank - b.rank) : [];
+  const isHost = myId === hostId;
 
   return (
     <div className="screen results-screen">
@@ -38,7 +42,16 @@ export function ResultsScreen({ results, sessionScores, players }: Props) {
           ))}
       </div>
 
-      <p className="returning">Returning to lobby...</p>
+      {isHost ? (
+        <button
+          className="return-lobby-btn"
+          onClick={() => send({ type: "c2s:return_to_lobby" })}
+        >
+          Return to Lobby
+        </button>
+      ) : (
+        <p className="returning">Waiting for host to return to lobby...</p>
+      )}
     </div>
   );
 }
