@@ -1,4 +1,4 @@
-import type { PlayerInfo, GameResult, GameTiming } from "@bunko/shared";
+import type { PlayerInfo, GameResult } from "@bunko/shared";
 import type { ServerGameModule } from "../game-engine.js";
 
 const TOTAL_ROUNDS = 5;
@@ -50,15 +50,6 @@ export class ReactionSpeedModule
   implements ServerGameModule<ReactionState, ReactionInput, ReactionConfig>
 {
   readonly gameId = "reaction-speed";
-  readonly displayName = "Reaction Speed";
-  readonly minPlayers = 1;
-  readonly maxPlayers = 10;
-  readonly timing: GameTiming = {
-    mode: "realtime",
-    tickRate: 20,
-    broadcastRate: 10,
-    maxDurationSecs: 120,
-  };
 
   init(players: PlayerInfo[]): {
     state: ReactionState;

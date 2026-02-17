@@ -7,7 +7,7 @@ import type {
   S2C_Error,
 } from "@bunko/shared";
 import type { ServerGameModule } from "./game/game-engine.js";
-import { createGameModule, getAvailableGames } from "./game/game-registry.js";
+import { createGameModule, getAvailableGames, getGameMeta } from "./game/game-registry.js";
 
 const MAX_NAME_LENGTH = 20;
 
@@ -217,7 +217,8 @@ export default class RoomParty implements Party.Server {
       payload,
     );
 
-    if (this.gameModule.timing.mode === "turnbased") {
+    const timing = getGameMeta(this.gameModule.gameId)?.timing;
+    if (timing?.mode === "turnbased") {
       this.broadcastGameState();
       this.checkGameOver();
     }
@@ -272,15 +273,17 @@ export default class RoomParty implements Party.Server {
       this.broadcastRoomState();
       this.broadcastGameState();
 
-      if (module.timing.mode === "realtime") {
+      const gameTiming = getGameMeta(module.gameId)?.timing;
+      if (gameTiming?.mode === "realtime") {
         this.startTickLoop(module);
       }
     }, countdownSecs * 1000);
   }
 
   private startTickLoop(module: ServerGameModule) {
-    const tickMs = 1000 / (module.timing.tickRate ?? 20);
-    const broadcastMs = 1000 / (module.timing.broadcastRate ?? 10);
+    const gameTiming = getGameMeta(module.gameId)?.timing;
+    const tickMs = 1000 / (gameTiming?.tickRate ?? 20);
+    const broadcastMs = 1000 / (gameTiming?.broadcastRate ?? 10);
 
     this.lastTickTime = Date.now();
 
