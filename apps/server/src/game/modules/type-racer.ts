@@ -1,4 +1,5 @@
-import type { PlayerInfo, GameResult, GameTiming } from "@bunko/shared";
+import type { PlayerInfo, GameResult } from "@bunko/shared";
+import { GAME_META } from "@bunko/shared";
 import type { ServerGameModule } from "../game-engine.js";
 
 const PARAGRAPHS = [
@@ -52,13 +53,6 @@ export class TypeRacerModule
   implements ServerGameModule<TypeRacerState, TypeRacerInput, TypeRacerConfig>
 {
   readonly gameId = "type-racer";
-  readonly displayName = "Type Racer";
-  readonly minPlayers = 1;
-  readonly maxPlayers = 10;
-  readonly timing: GameTiming = {
-    mode: "turnbased",
-    maxDurationSecs: 60,
-  };
 
   init(players: PlayerInfo[]): {
     state: TypeRacerState;
@@ -77,7 +71,7 @@ export class TypeRacerModule
       });
     }
 
-    const durationSecs = this.timing.maxDurationSecs;
+    const durationSecs = GAME_META[this.gameId].timing.maxDurationSecs;
     return {
       state: {
         text,

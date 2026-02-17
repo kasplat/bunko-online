@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { TypeRacerModule } from "./type-racer.js";
+import { GAME_META } from "@bunko/shared";
 import type { PlayerInfo } from "@bunko/shared";
 
 function makePlayers(count: number): PlayerInfo[] {
@@ -26,10 +27,11 @@ describe("TypeRacerModule", () => {
   describe("metadata", () => {
     it("has correct game properties", () => {
       expect(mod.gameId).toBe("type-racer");
-      expect(mod.minPlayers).toBe(1);
-      expect(mod.maxPlayers).toBe(10);
-      expect(mod.timing.mode).toBe("turnbased");
-      expect(mod.timing.maxDurationSecs).toBe(60);
+      const meta = GAME_META["type-racer"];
+      expect(meta.minPlayers).toBe(1);
+      expect(meta.maxPlayers).toBe(10);
+      expect(meta.timing.mode).toBe("turnbased");
+      expect(meta.timing.maxDurationSecs).toBe(60);
     });
   });
 

@@ -1,4 +1,4 @@
-import type { PlayerInfo, GameResult, GameTiming } from "@bunko/shared";
+import type { PlayerInfo, GameResult } from "@bunko/shared";
 
 /** Server-side game module — each mini-game implements this */
 export interface ServerGameModule<
@@ -7,10 +7,6 @@ export interface ServerGameModule<
   TConfig = unknown,
 > {
   readonly gameId: string;
-  readonly displayName: string;
-  readonly minPlayers: number;
-  readonly maxPlayers: number;
-  readonly timing: GameTiming;
 
   /** Called once when the game starts. Returns initial state + config sent to clients. */
   init(players: PlayerInfo[]): { state: TState; config: TConfig };
