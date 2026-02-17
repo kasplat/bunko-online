@@ -69,6 +69,52 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
             </div>
           )}
 
+          {isHost && roomState.selectedGameId === "type-racer" && (
+            <div className="game-settings">
+              <h3>Game Settings</h3>
+              <div className="setting-row">
+                <label>Passage Length</label>
+                <div className="setting-options">
+                  {(["short", "medium", "long"] as const).map((len) => (
+                    <button
+                      key={len}
+                      className={`setting-option ${(roomState.gameSettings?.passageLength ?? "medium") === len ? "selected" : ""}`}
+                      onClick={() =>
+                        send({
+                          type: "c2s:game_settings",
+                          gameId: "type-racer",
+                          settings: { ...roomState.gameSettings, passageLength: len },
+                        })
+                      }
+                    >
+                      {len.charAt(0).toUpperCase() + len.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="setting-row">
+                <label>Time Limit</label>
+                <div className="setting-options">
+                  {([30, 60, 90, 120] as const).map((secs) => (
+                    <button
+                      key={secs}
+                      className={`setting-option ${(roomState.gameSettings?.timeLimit ?? 60) === secs ? "selected" : ""}`}
+                      onClick={() =>
+                        send({
+                          type: "c2s:game_settings",
+                          gameId: "type-racer",
+                          settings: { ...roomState.gameSettings, timeLimit: secs },
+                        })
+                      }
+                    >
+                      {secs}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {!isHost && roomState.selectedGameId && (
             <p className="selected-game">
               Game:{" "}
@@ -85,6 +131,7 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
             {me && (
               <button
                 className={me.ready ? "ready-btn active" : "ready-btn"}
+                disabled={!roomState.selectedGameId}
                 onClick={() => send({ type: "c2s:ready", ready: !me.ready })}
               >
                 {me.ready ? "Unready" : "Ready Up"}

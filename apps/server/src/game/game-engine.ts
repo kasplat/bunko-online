@@ -9,7 +9,7 @@ export interface ServerGameModule<
   readonly gameId: string;
 
   /** Called once when the game starts. Returns initial state + config sent to clients. */
-  init(players: PlayerInfo[]): { state: TState; config: TConfig };
+  init(players: PlayerInfo[], settings?: Record<string, unknown>): { state: TState; config: TConfig };
 
   /** Process a player's input. Returns updated state. */
   onInput(state: TState, playerId: string, input: TInput): TState;

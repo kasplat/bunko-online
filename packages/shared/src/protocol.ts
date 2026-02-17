@@ -36,13 +36,25 @@ export interface C2S_GameInput extends BaseMessage {
   payload: unknown;
 }
 
+export interface C2S_ReturnToLobby extends BaseMessage {
+  type: "c2s:return_to_lobby";
+}
+
+export interface C2S_GameSettings extends BaseMessage {
+  type: "c2s:game_settings";
+  gameId: string;
+  settings: Record<string, unknown>;
+}
+
 export type ClientMessage =
   | C2S_JoinRoom
   | C2S_LeaveRoom
   | C2S_SelectGame
   | C2S_Ready
   | C2S_StartGame
-  | C2S_GameInput;
+  | C2S_GameInput
+  | C2S_ReturnToLobby
+  | C2S_GameSettings;
 
 /** Distributive Omit that preserves discriminated union members */
 type DistributiveOmit<T, K extends keyof T> = T extends unknown
@@ -63,6 +75,7 @@ export interface S2C_RoomState extends BaseMessage {
   yourId: string;
   selectedGameId: string | null;
   sessionScores: Record<string, number>;
+  gameSettings: Record<string, unknown>;
 }
 
 export interface S2C_GameStarting extends BaseMessage {

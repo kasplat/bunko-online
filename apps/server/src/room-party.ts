@@ -24,6 +24,7 @@ export default class RoomParty implements Party.Server {
   hostId: string | null = null;
   selectedGameId: string | null = null;
   sessionScores: Record<string, number> = {};
+  gameSettings: Record<string, unknown> = {};
 
   // Game state
   gameModule: ServerGameModule | null = null;
@@ -102,6 +103,12 @@ export default class RoomParty implements Party.Server {
       case "c2s:leave_room":
         this.handleLeave(sender);
         break;
+      case "c2s:return_to_lobby":
+        this.handleReturnToLobby(sender);
+        break;
+      case "c2s:game_settings":
+        this.handleGameSettings(sender, msg.gameId, msg.settings);
+        break;
     }
   }
 
@@ -147,6 +154,7 @@ export default class RoomParty implements Party.Server {
     if (typeof gameId !== "string" || !gameId) return;
 
     this.selectedGameId = gameId;
+    this.gameSettings = {};
     for (const p of this.players.values()) {
       p.ready = false;
     }
@@ -224,6 +232,42 @@ export default class RoomParty implements Party.Server {
     }
   }
 
+  private handleReturnToLobby(sender: Party.Connection) {
+    if (sender.id !== this.hostId) {
+      this.sendError(sender, "NOT_HOST", "Only the host can return to lobby");
+      return;
+    }
+    if (this.phase !== "results") return;
+
+    if (this.resultsTimeout) {
+      clearTimeout(this.resultsTimeout);
+      this.resultsTimeout = null;
+    }
+
+    this.phase = "lobby";
+    for (const p of this.players.values()) {
+      p.ready = false;
+    }
+    const toRemove: string[] = [];
+    for (const [id, p] of this.players) {
+      if (!p.connected) toRemove.push(id);
+    }
+    for (const id of toRemove) {
+      this.players.delete(id);
+    }
+    this.broadcastRoomState();
+  }
+
+  private handleGameSettings(sender: Party.Connection, gameId: string, settings: Record<string, unknown>) {
+    if (sender.id !== this.hostId) {
+      this.sendError(sender, "NOT_HOST", "Only the host can change settings");
+      return;
+    }
+    if (this.phase !== "lobby") return;
+    this.gameSettings = settings;
+    this.broadcastRoomState();
+  }
+
   private handleLeave(sender: Party.Connection) {
     this.players.delete(sender.id);
     if (this.hostId === sender.id) {
@@ -250,7 +294,7 @@ export default class RoomParty implements Party.Server {
 
     this.gameModule = module;
     const playerInfos = this.getPlayerInfos().filter((p) => p.connected);
-    const { state, config } = module.init(playerInfos);
+    const { state, config } = module.init(playerInfos, this.gameSettings);
     this.gameState = state;
     this.prevGameState = null;
 
@@ -355,23 +399,7 @@ export default class RoomParty implements Party.Server {
     this.phase = "results";
     this.broadcastRoomState();
 
-    // Return to lobby after results
-    this.resultsTimeout = setTimeout(() => {
-      this.resultsTimeout = null;
-      this.phase = "lobby";
-      for (const p of this.players.values()) {
-        p.ready = false;
-      }
-      // Remove disconnected players
-      const toRemove: string[] = [];
-      for (const [id, p] of this.players) {
-        if (!p.connected) toRemove.push(id);
-      }
-      for (const id of toRemove) {
-        this.players.delete(id);
-      }
-      this.broadcastRoomState();
-    }, 5000);
+    // Host controls when to return to lobby via c2s:return_to_lobby
   }
 
   // ---- Helpers ----
@@ -400,6 +428,7 @@ export default class RoomParty implements Party.Server {
       hostId: this.hostId ?? "",
       selectedGameId: this.selectedGameId,
       sessionScores: this.sessionScores,
+      gameSettings: this.gameSettings,
     };
 
     // Send per-connection so each client gets their own yourId
@@ -474,7 +503,10 @@ export function isValidClientMessage(raw: unknown): boolean {
       return typeof obj.ready === "boolean";
     case "c2s:start_game":
     case "c2s:leave_room":
+    case "c2s:return_to_lobby":
       return true;
+    case "c2s:game_settings":
+      return typeof obj.gameId === "string" && typeof obj.settings === "object" && obj.settings !== null;
     case "c2s:game_input":
       return typeof obj.gameId === "string" && obj.payload !== undefined;
     case "c2s:join_room":

@@ -82,6 +82,9 @@ export function App() {
           results={gameResults}
           sessionScores={roomState.sessionScores}
           players={roomState.players}
+          myId={myId}
+          hostId={roomState.hostId}
+          send={send}
         />
       )}
     </div>

@@ -196,7 +196,7 @@ export class TypeRacerClientModule
           <div class="bar">
             <div class="bar-fill" style="width: ${Math.round(p.progress * 100)}%"></div>
           </div>
-          ${p.finished ? '<span class="done">Done!</span>' : `<span class="wpm">${p.wpm} WPM</span>`}
+          ${p.finished ? `<span class="done">${p.wpm} WPM &#10003;</span>` : `<span class="wpm">${p.wpm} WPM</span>`}
         </div>
       `,
       )
