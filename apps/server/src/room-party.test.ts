@@ -103,6 +103,62 @@ describe("isValidClientMessage", () => {
     });
   });
 
+  describe("c2s:return_to_lobby", () => {
+    it("accepts valid return_to_lobby", () => {
+      expect(isValidClientMessage({ type: "c2s:return_to_lobby" })).toBe(true);
+    });
+  });
+
+  describe("c2s:game_settings", () => {
+    it("accepts valid game_settings", () => {
+      expect(
+        isValidClientMessage({
+          type: "c2s:game_settings",
+          gameId: "type-racer",
+          settings: { passageLength: "short" },
+        }),
+      ).toBe(true);
+    });
+
+    it("rejects missing gameId", () => {
+      expect(
+        isValidClientMessage({
+          type: "c2s:game_settings",
+          settings: { passageLength: "short" },
+        }),
+      ).toBe(false);
+    });
+
+    it("rejects missing settings", () => {
+      expect(
+        isValidClientMessage({
+          type: "c2s:game_settings",
+          gameId: "type-racer",
+        }),
+      ).toBe(false);
+    });
+
+    it("rejects null settings", () => {
+      expect(
+        isValidClientMessage({
+          type: "c2s:game_settings",
+          gameId: "type-racer",
+          settings: null,
+        }),
+      ).toBe(false);
+    });
+
+    it("rejects non-object settings", () => {
+      expect(
+        isValidClientMessage({
+          type: "c2s:game_settings",
+          gameId: "type-racer",
+          settings: "not-an-object",
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("c2s:game_input", () => {
     it("accepts valid game_input", () => {
       expect(

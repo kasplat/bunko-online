@@ -61,6 +61,53 @@ describe("TypeRacerModule", () => {
       const { state } = mod.init(makePlayers(1));
       expect(state.players.size).toBe(1);
     });
+
+    it("uses short passages when passageLength is 'short'", () => {
+      const { state } = mod.init(makePlayers(1), { passageLength: "short" });
+      // Short passages are single sentences (< 50 chars)
+      expect(state.text.length).toBeLessThan(60);
+    });
+
+    it("uses long passages when passageLength is 'long'", () => {
+      const { state } = mod.init(makePlayers(1), { passageLength: "long" });
+      // Long passages are multiple sentences (> 100 chars)
+      expect(state.text.length).toBeGreaterThan(100);
+    });
+
+    it("defaults to medium passages when passageLength is missing", () => {
+      const { state: withSettings } = mod.init(makePlayers(1), {});
+      const { state: noSettings } = mod.init(makePlayers(1));
+      // Both should pick from medium passages (60-100 chars range)
+      expect(withSettings.text.length).toBeGreaterThan(40);
+      expect(noSettings.text.length).toBeGreaterThan(40);
+    });
+
+    it("uses custom time limit from settings", () => {
+      const { state, config } = mod.init(makePlayers(1), { timeLimit: 30 });
+      expect(state.durationSecs).toBe(30);
+      expect(config.durationSecs).toBe(30);
+    });
+
+    it("clamps time limit to minimum 15 seconds", () => {
+      const { state } = mod.init(makePlayers(1), { timeLimit: 5 });
+      expect(state.durationSecs).toBe(15);
+    });
+
+    it("clamps time limit to maximum 300 seconds", () => {
+      const { state } = mod.init(makePlayers(1), { timeLimit: 999 });
+      expect(state.durationSecs).toBe(300);
+    });
+
+    it("defaults to GAME_META duration when timeLimit is not a number", () => {
+      const { state } = mod.init(makePlayers(1), { timeLimit: "invalid" });
+      expect(state.durationSecs).toBe(60);
+    });
+
+    it("falls back to medium for invalid passageLength", () => {
+      const { state } = mod.init(makePlayers(1), { passageLength: "huge" });
+      // Should use medium passages (same range as default)
+      expect(state.text.length).toBeGreaterThan(40);
+    });
   });
 
   describe("onInput", () => {

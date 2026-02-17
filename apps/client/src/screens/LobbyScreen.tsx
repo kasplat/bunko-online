@@ -69,7 +69,7 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
             </div>
           )}
 
-          {isHost && roomState.selectedGameId === "type-racer" && (
+          {roomState.selectedGameId === "type-racer" && (
             <div className="game-settings">
               <h3>Game Settings</h3>
               <div className="setting-row">
@@ -79,6 +79,7 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
                     <button
                       key={len}
                       className={`setting-option ${(roomState.gameSettings?.passageLength ?? "medium") === len ? "selected" : ""}`}
+                      disabled={!isHost}
                       onClick={() =>
                         send({
                           type: "c2s:game_settings",
@@ -99,6 +100,7 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
                     <button
                       key={secs}
                       className={`setting-option ${(roomState.gameSettings?.timeLimit ?? 60) === secs ? "selected" : ""}`}
+                      disabled={!isHost}
                       onClick={() =>
                         send({
                           type: "c2s:game_settings",
