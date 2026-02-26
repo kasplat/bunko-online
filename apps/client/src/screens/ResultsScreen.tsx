@@ -15,6 +15,11 @@ export function ResultsScreen({ results, sessionScores, players, myId, hostId, s
 
   return (
     <div className="screen results-screen">
+      <img
+        src="https://media.tenor.com/TrZcpR0Kde8AAAAi/cat-meme-funny.gif"
+        alt="Celebration"
+        style={{ width: 120, height: 120 }}
+      />
       <h2>Results</h2>
 
       {sorted.length > 0 && (
