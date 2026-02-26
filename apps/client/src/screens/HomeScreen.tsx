@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+const SUBTITLES = [
+  "Fun fact: Bunko eats ass",
+  "Have you read The Power Broker?",
+  "Go touch grass",
+];
 
 interface Props {
   onCreateRoom: (name: string) => void;
@@ -8,10 +14,20 @@ interface Props {
 export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
   const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
+  const subtitle = useMemo(
+    () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
+    [],
+  );
 
   return (
     <div className="screen home-screen">
+      <img
+        src="https://media.tenor.com/Tq2fqZg90pUAAAAi/monkey-dance.gif"
+        alt="Dancing monkey"
+        style={{ width: 80, height: 80 }}
+      />
       <h1>Bunko</h1>
+      <p style={{ opacity: 0.6, fontStyle: "italic", marginTop: -8 }}>{subtitle}</p>
       <input
         type="text"
         placeholder="Your name"
