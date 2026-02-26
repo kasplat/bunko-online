@@ -83,20 +83,20 @@ export class ReactionSpeedClientModule
         transition: background-color 0.1s;
       }
       .reaction-zone.waiting {
-        background: #c0392b;
+        background: #ff7675;
       }
       .reaction-zone.go {
-        background: #27ae60;
+        background: #00b894;
       }
       .reaction-zone.tapped {
-        background: #2c3e50;
+        background: #dfe6e9;
         cursor: default;
       }
       .reaction-zone.false-start {
-        background: #e67e22;
+        background: #ffa502;
       }
       .reaction-zone.round-over {
-        background: #2c3e50;
+        background: #dfe6e9;
         cursor: default;
       }
       .reaction-label {
@@ -117,17 +117,17 @@ export class ReactionSpeedClientModule
         align-items: center;
         gap: 0.75rem;
         padding: 0.5rem 0.75rem;
-        background: #16213e;
+        background: #fff5e1;
         border-radius: 6px;
         font-size: 0.9rem;
       }
       .reaction-player-row.me {
-        border: 1px solid #e94560;
+        border: 1px solid #ff6b6b;
       }
       .reaction-player-row .rp-name { flex: 1; }
       .reaction-player-row .rp-time { font-weight: 600; min-width: 70px; text-align: right; }
       .reaction-player-row .rp-avg { opacity: 0.6; min-width: 80px; text-align: right; }
-      .reaction-player-row .rp-false { color: #e67e22; }
+      .reaction-player-row .rp-false { color: #ffa502; }
     `;
     container.appendChild(style);
 

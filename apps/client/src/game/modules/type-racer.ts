@@ -67,27 +67,27 @@ export class TypeRacerClientModule
         font-size: 1.2rem;
         line-height: 1.8;
         padding: 1rem;
-        background: #16213e;
+        background: #fff5e1;
         border-radius: 8px;
         user-select: none;
       }
-      .tr-text-display .typed { color: #2ecc71; }
-      .tr-text-display .current { background: #e94560; color: #fff; padding: 0 1px; }
-      .tr-text-display .remaining { color: #666; }
-      .tr-text-display .error { color: #e74c3c; text-decoration: underline; }
+      .tr-text-display .typed { color: #51cf66; }
+      .tr-text-display .current { background: #ff6b6b; color: #fff; padding: 0 1px; }
+      .tr-text-display .remaining { color: #636e72; }
+      .tr-text-display .error { color: #ff6b6b; text-decoration: underline; }
       .tr-input {
         width: 100%;
         padding: 0.75rem 1rem;
         font-size: 1.1rem;
         font-family: 'Courier New', monospace;
-        background: #0f3460;
-        border: 2px solid #333;
+        background: #fff8ed;
+        border: 2px solid #dfe6e9;
         border-radius: 8px;
-        color: #eee;
+        color: #2d3436;
         text-align: left;
         max-width: 100%;
       }
-      .tr-input:focus { outline: none; border-color: #e94560; }
+      .tr-input:focus { outline: none; border-color: #ff6b6b; }
       .tr-progress-section { display: flex; flex-direction: column; gap: 0.5rem; }
       .tr-player-progress {
         display: flex; align-items: center; gap: 0.75rem;
@@ -95,15 +95,15 @@ export class TypeRacerClientModule
       }
       .tr-player-progress .name { min-width: 80px; }
       .tr-player-progress .bar {
-        flex: 1; height: 8px; background: #333; border-radius: 4px; overflow: hidden;
+        flex: 1; height: 8px; background: #dfe6e9; border-radius: 4px; overflow: hidden;
       }
       .tr-player-progress .bar-fill {
-        height: 100%; background: #e94560; border-radius: 4px;
+        height: 100%; background: #ff6b6b; border-radius: 4px;
         transition: width 0.15s ease;
       }
-      .tr-player-progress.me .bar-fill { background: #2ecc71; }
+      .tr-player-progress.me .bar-fill { background: #51cf66; }
       .tr-player-progress .wpm { min-width: 60px; text-align: right; font-size: 0.8rem; opacity: 0.7; }
-      .tr-player-progress .done { color: #2ecc71; font-weight: 600; }
+      .tr-player-progress .done { color: #51cf66; font-weight: 600; }
       .tr-stats { display: flex; gap: 2rem; justify-content: center; font-size: 0.9rem; opacity: 0.7; }
     `;
     container.appendChild(style);
