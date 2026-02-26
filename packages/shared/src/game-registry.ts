@@ -35,6 +35,14 @@ export const GAME_META: Record<string, GameMeta> = {
     maxPlayers: 100,
     timing: { mode: "realtime", tickRate: 20, broadcastRate: 10, maxDurationSecs: 120 },
   },
+  "tower-growth": {
+    gameId: "tower-growth",
+    displayName: "Tower Growth",
+    description: "Tap during green to grow your tower — first to the finish line wins!",
+    minPlayers: 1,
+    maxPlayers: 10,
+    timing: { mode: "realtime", tickRate: 20, broadcastRate: 10, maxDurationSecs: 120 },
+  },
 };
 
 export function getAvailableGames(): GameMeta[] {
