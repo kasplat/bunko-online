@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useEffect } from "react";
 import type { S2C_RoomState, ClientMessagePayload } from "@bunko/shared";
 import { getAvailableGames } from "../game/game-registry";
+import { audioManager } from "../audio";
 
 const GAME_SOUNDS: Record<string, string> = {
   "type-racer": "/click.mp3",
@@ -17,15 +18,17 @@ interface Props {
 
 export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
   const isHost = myId === roomState.hostId;
-  const me = roomState.players.find((p) => p.id === myId);
-  const allReady = roomState.players.every((p) => p.ready);
   const games = getAvailableGames();
   const hasScores = Object.values(roomState.sessionScores).some((s) => s > 0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const leaderboard = roomState.players
     .map((p) => ({ name: p.name, id: p.id, score: roomState.sessionScores[p.id] ?? 0 }))
     .sort((a, b) => b.score - a.score);
+
+  useEffect(() => {
+    const { stop } = audioManager.playLoop("/lobby-music.mp3");
+    return stop;
+  }, []);
 
   return (
     <div className="screen lobby-screen">
@@ -50,8 +53,8 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
                   {p.id === roomState.hostId && " (host)"}
                   {p.id === myId && " (you)"}
                 </span>
-                <span className={`ready-badge ${p.ready ? "ready" : ""}`}>
-                  {p.ready ? "Ready" : "Not ready"}
+                <span className={`ready-badge ${p.connected ? "ready" : ""}`}>
+                  {p.connected ? "Connected" : "Disconnected"}
                 </span>
               </div>
             ))}
@@ -68,13 +71,7 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
                     onClick={() => {
                       const soundUrl = GAME_SOUNDS[g.gameId];
                       if (soundUrl) {
-                        if (!audioRef.current) {
-                          audioRef.current = new Audio(soundUrl);
-                        } else {
-                          audioRef.current.src = soundUrl;
-                        }
-                        audioRef.current.currentTime = 0;
-                        audioRef.current.play().catch(() => {});
+                        audioManager.play(soundUrl);
                       }
                       send({ type: "c2s:select_game", gameId: g.gameId });
                     }}
@@ -148,19 +145,10 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
           )}
 
           <div className="lobby-actions">
-            {me && (
-              <button
-                className={me.ready ? "ready-btn active" : "ready-btn"}
-                disabled={!roomState.selectedGameId}
-                onClick={() => send({ type: "c2s:ready", ready: !me.ready })}
-              >
-                {me.ready ? "Unready" : "Ready Up"}
-              </button>
-            )}
             {isHost && (
               <button
                 className="start-btn"
-                disabled={!allReady || !roomState.selectedGameId}
+                disabled={!roomState.selectedGameId}
                 onClick={() => send({ type: "c2s:start_game" })}
               >
                 Start Game

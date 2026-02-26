@@ -1,5 +1,6 @@
 import { useMemo, useEffect } from "react";
 import type { GameResult, PlayerInfo, ClientMessagePayload } from "@bunko/shared";
+import { audioManager } from "../audio";
 
 const VICTORY_SOUNDS = ["/victory.mp3", "/victory2.mp3"];
 const LOSE_SOUNDS = ["/lose.mp3"];
@@ -38,8 +39,7 @@ export function ResultsScreen({ results, sessionScores, players, myId, hostId, s
   useEffect(() => {
     const pool = isWinner ? VICTORY_SOUNDS : LOSE_SOUNDS;
     const sound = pool[Math.floor(Math.random() * pool.length)];
-    const audio = new Audio(sound);
-    audio.play().catch(() => {});
+    const audio = audioManager.play(sound);
     return () => {
       audio.pause();
       audio.currentTime = 0;
