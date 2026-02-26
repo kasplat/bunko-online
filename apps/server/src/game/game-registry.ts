@@ -2,11 +2,13 @@ import { getAvailableGames, getGameMeta } from "@bunko/shared";
 import type { ServerGameModule } from "./game-engine.js";
 import { TypeRacerModule } from "./modules/type-racer.js";
 import { ReactionSpeedModule } from "./modules/reaction-speed.js";
+import { TowerGrowthModule } from "./modules/tower-growth.js";
 
 const factories = new Map<string, () => ServerGameModule>();
 
 factories.set("type-racer", () => new TypeRacerModule());
 factories.set("reaction-speed", () => new ReactionSpeedModule());
+factories.set("tower-growth", () => new TowerGrowthModule());
 
 export function createGameModule(gameId: string): ServerGameModule | null {
   const factory = factories.get(gameId);
