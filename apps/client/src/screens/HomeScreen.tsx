@@ -6,6 +6,14 @@ const SUBTITLES = [
   "Go touch grass",
 ];
 
+const GIFS = [
+  "https://media.tenor.com/Tq2fqZg90pUAAAAi/monkey-dance.gif",
+  "https://media1.tenor.com/m/Bh6YThOUYC4AAAAC/funny-monkey-everyday-monkey-dancing.gif",
+  "https://media.tenor.com/QpSztqdVO0wAAAAj/donkey-kong-dk-rap.gif",
+  "https://media.tenor.com/Zv1Eic3ki0kAAAAi/beanie-monkey.gif",
+  "https://media1.tenor.com/m/DvQHTFUt9Q8AAAAC/radicord-diddy-kong.gif",
+];
+
 interface Props {
   onCreateRoom: (name: string) => void;
   onJoinRoom: (name: string, code: string) => void;
@@ -18,11 +26,15 @@ export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
     () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
     [],
   );
+  const gif = useMemo(
+    () => GIFS[Math.floor(Math.random() * GIFS.length)],
+    [],
+  );
 
   return (
     <div className="screen home-screen">
       <img
-        src="https://media.tenor.com/Tq2fqZg90pUAAAAi/monkey-dance.gif"
+        src={gif}
         alt="Dancing monkey"
         style={{ width: 80, height: 80 }}
       />
