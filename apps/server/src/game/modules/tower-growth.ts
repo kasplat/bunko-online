@@ -8,6 +8,7 @@ const MIN_LIGHT_DURATION_MS = 2000;
 const MAX_LIGHT_DURATION_MS = 5000;
 const MAX_DURATION_MS = 120_000;
 const MIN_HEIGHT = 0;
+const DECAY_PER_SECOND = 2;
 
 // Mario Kart / F1-inspired decreasing point table (up to 10 players)
 const SCORE_TABLE = [100, 80, 65, 55, 45, 38, 32, 27, 23, 20];
@@ -125,7 +126,7 @@ export class TowerGrowthModule
     return state;
   }
 
-  tick(state: TowerState, _dt: number): TowerState {
+  tick(state: TowerState, dt: number): TowerState {
     if (state.finished) return state;
 
     const now = Date.now();
@@ -134,6 +135,14 @@ export class TowerGrowthModule
       state.lightColor = state.lightColor === "green" ? "red" : "green";
       state.lightChangedAt = now;
       state.nextLightChangeAt = now + randomLightDuration();
+    }
+
+    // Passive decay for all unfinished players
+    const decay = DECAY_PER_SECOND * dt;
+    for (const p of state.players.values()) {
+      if (!p.finished) {
+        p.height = Math.max(MIN_HEIGHT, p.height - decay);
+      }
     }
 
     if (now - state.startedAt >= MAX_DURATION_MS) {
