@@ -23,6 +23,46 @@ interface ReactionState {
   players: ReactionPlayerState[];
 }
 
+const FAST_MESSAGES = [
+  (ms: number) =>
+    `You took about the time for a hummingbird to flap its wings ${Math.round(ms / 14)} times`,
+  "Faster than a zebra on a ripstick",
+  "AMONG US",
+  "zoowie mama ur fast!",
+  "sonic is proud",
+  "sped",
+  "so fast you hurt my brian",
+];
+
+const MEDIUM_MESSAGES = [
+  "u remind me of a among us",
+  "average. mario style",
+  "I'll allow it",
+  "u took as long as it takes for the average sloth to blink",
+  "Average time average score... Fuck you",
+];
+
+const SLOW_MESSAGES = [
+  "sleeping at the wheel?",
+  "hello are you there?",
+  "zzzzzz",
+  "Fun fact: you took as long as a sloth takes to go to the bathroom",
+  "Fun fact: A fish can swim across the ocean in that long",
+];
+
+function getSpeedSubtitle(ms: number): string {
+  let pool: (string | ((ms: number) => string))[];
+  if (ms <= 400) {
+    pool = FAST_MESSAGES;
+  } else if (ms <= 500) {
+    pool = MEDIUM_MESSAGES;
+  } else {
+    pool = SLOW_MESSAGES;
+  }
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return typeof pick === "function" ? pick(ms) : pick;
+}
+
 export class ReactionSpeedClientModule
   implements ClientGameModule<ReactionState, { action: "tap" }, ReactionConfig>
 {
@@ -34,6 +74,10 @@ export class ReactionSpeedClientModule
   private state: ReactionState | null = null;
   private tapped = false;
   private handleClick: (() => void) | null = null;
+  private currentSubtitle: string | null = null;
+  private lastSubtitleTime: number | undefined = undefined;
+  private goSound: HTMLAudioElement | null = null;
+  private playedGoSound = false;
 
   mount(
     container: HTMLElement,
@@ -45,12 +89,18 @@ export class ReactionSpeedClientModule
     this.sendInput = sendInput;
     this.getPlayerId = getPlayerId;
     this.tapped = false;
+    this.goSound = new Audio("/boing.mp3");
+    this.goSound.preload = "auto";
 
     container.innerHTML = `
       <div class="reaction-game">
         <div class="reaction-round-info"></div>
         <div class="reaction-zone waiting">
           <span class="reaction-label">Wait...</span>
+        </div>
+        <div class="reaction-subtitle">
+          <img class="reaction-monkey" src="/monkey.png" alt="" />
+          <span class="reaction-subtitle-text"></span>
         </div>
         <div class="reaction-results"></div>
       </div>
@@ -106,6 +156,25 @@ export class ReactionSpeedClientModule
         text-transform: uppercase;
         pointer-events: none;
       }
+      .reaction-subtitle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-height: 2.5rem;
+      }
+      .reaction-monkey {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
+      .reaction-subtitle-text {
+        font-size: 1rem;
+        opacity: 0.8;
+        font-style: italic;
+        color: #e0e0e0;
+      }
       .reaction-results {
         width: 100%;
         display: flex;
@@ -133,6 +202,15 @@ export class ReactionSpeedClientModule
 
     const zone = container.querySelector(".reaction-zone");
     this.handleClick = () => {
+      // Unlock audio on first user interaction (browser autoplay policy)
+      if (this.goSound) {
+        this.goSound.volume = 0;
+        this.goSound.play().then(() => {
+          this.goSound!.pause();
+          this.goSound!.currentTime = 0;
+          this.goSound!.volume = 1;
+        }).catch(() => {});
+      }
       if (this.tapped || !this.state || this.state.roundOver || this.state.finished) return;
       this.tapped = true;
       this.sendInput?.({ action: "tap" });
@@ -151,6 +229,7 @@ export class ReactionSpeedClientModule
     // Reset tapped flag on new round
     if (prevRound !== undefined && state.round !== prevRound) {
       this.tapped = false;
+      this.playedGoSound = false;
     }
 
     // Sync tapped state from server (handles reconnection)
@@ -180,6 +259,7 @@ export class ReactionSpeedClientModule
     if (!this.container || !this.state) return;
     const zone = this.container.querySelector(".reaction-zone");
     const label = this.container.querySelector(".reaction-label");
+    const subtitle = this.container.querySelector(".reaction-subtitle");
     if (!zone || !label) return;
 
     const myId = this.getPlayerId?.() ?? "";
@@ -187,6 +267,7 @@ export class ReactionSpeedClientModule
     const lastTime = me ? me.reactionTimes[me.reactionTimes.length - 1] : undefined;
 
     zone.className = "reaction-zone";
+    let showSubtitle = false;
 
     if (this.state.finished) {
       zone.classList.add("round-over");
@@ -197,6 +278,7 @@ export class ReactionSpeedClientModule
         label.textContent = "False start!";
       } else if (lastTime !== undefined) {
         label.textContent = `${lastTime}ms`;
+        showSubtitle = true;
       } else {
         label.textContent = "Round over";
       }
@@ -207,13 +289,37 @@ export class ReactionSpeedClientModule
       } else {
         zone.classList.add("tapped");
         label.textContent = lastTime !== undefined ? `${lastTime}ms` : "Tapped!";
+        if (lastTime !== undefined) showSubtitle = true;
       }
     } else if (this.state.signalShown) {
       zone.classList.add("go");
       label.textContent = "TAP!";
+      if (!this.playedGoSound && this.goSound) {
+        this.playedGoSound = true;
+        this.goSound.currentTime = 0;
+        this.goSound.play().catch(() => {});
+      }
     } else {
       zone.classList.add("waiting");
       label.textContent = "Wait...";
+    }
+
+    if (subtitle) {
+      const subtitleText = subtitle.querySelector(".reaction-subtitle-text");
+      if (showSubtitle && lastTime !== undefined && lastTime !== FALSE_START) {
+        // Only pick a new subtitle if the time changed
+        if (this.lastSubtitleTime !== lastTime) {
+          this.lastSubtitleTime = lastTime;
+          this.currentSubtitle = getSpeedSubtitle(lastTime);
+        }
+        if (subtitleText) subtitleText.textContent = this.currentSubtitle;
+      } else {
+        if (subtitleText) subtitleText.textContent = "";
+        if (!showSubtitle) {
+          this.lastSubtitleTime = undefined;
+          this.currentSubtitle = null;
+        }
+      }
     }
   }
 
