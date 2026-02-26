@@ -1,5 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import type { GameResult, PlayerInfo, ClientMessagePayload } from "@bunko/shared";
+
+const VICTORY_SOUNDS = ["/victory.mp3", "/victory2.mp3"];
+const LOSE_SOUNDS = ["/lose.mp3"];
 
 const CELEBRATION_GIFS = [
   "https://media.tenor.com/TrZcpR0Kde8AAAAi/cat-meme-funny.gif",
@@ -28,6 +31,20 @@ export function ResultsScreen({ results, sessionScores, players, myId, hostId, s
     () => CELEBRATION_GIFS[Math.floor(Math.random() * CELEBRATION_GIFS.length)],
     [],
   );
+
+  const myResult = sorted.find((r) => r.playerId === myId);
+  const isWinner = myResult?.rank === 1;
+
+  useEffect(() => {
+    const pool = isWinner ? VICTORY_SOUNDS : LOSE_SOUNDS;
+    const sound = pool[Math.floor(Math.random() * pool.length)];
+    const audio = new Audio(sound);
+    audio.play().catch(() => {});
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
 
   return (
     <div className="screen results-screen">
