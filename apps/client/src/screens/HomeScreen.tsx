@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { audioManager } from "../audio";
 
 const SUBTITLES = [
   "Fun fact: Bunko eats ass",
@@ -44,7 +45,12 @@ export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
         type="text"
         placeholder="Your name"
         value={name}
-        onChange={(e) => setName(e.target.value)}
+        onChange={(e) => {
+          if (e.target.value.length > name.length) {
+            audioManager.play("/gunshot.mp3");
+          }
+          setName(e.target.value);
+        }}
         maxLength={20}
       />
       <div className="actions">

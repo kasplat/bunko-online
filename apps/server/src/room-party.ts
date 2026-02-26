@@ -56,7 +56,7 @@ export default class RoomParty implements Party.Server {
       this.players.set(conn.id, {
         id: conn.id,
         name,
-        ready: false,
+        ready: true,
         connected: true,
       });
     }
@@ -90,9 +90,6 @@ export default class RoomParty implements Party.Server {
         break;
       case "c2s:select_game":
         this.handleSelectGame(sender, msg.gameId);
-        break;
-      case "c2s:ready":
-        this.handleReady(sender, msg.ready);
         break;
       case "c2s:start_game":
         this.handleStartGame(sender);
@@ -160,19 +157,7 @@ export default class RoomParty implements Party.Server {
 
     this.selectedGameId = gameId;
     this.gameSettings = {};
-    for (const p of this.players.values()) {
-      p.ready = false;
-    }
     this.broadcastRoomState();
-  }
-
-  private handleReady(sender: Party.Connection, ready: boolean) {
-    if (this.phase !== "lobby") return;
-    const player = this.players.get(sender.id);
-    if (player) {
-      player.ready = !!ready;
-      this.broadcastRoomState();
-    }
   }
 
   private handleStartGame(sender: Party.Connection) {
@@ -188,12 +173,6 @@ export default class RoomParty implements Party.Server {
     const connectedPlayers = [...this.players.values()].filter(
       (p) => p.connected,
     );
-
-    const allReady = connectedPlayers.every((p) => p.ready);
-    if (!allReady) {
-      this.sendError(sender, "NOT_READY", "Not all players are ready");
-      return;
-    }
 
     // Validate player count against game requirements
     const gameMeta = getAvailableGames().find(
@@ -403,9 +382,6 @@ export default class RoomParty implements Party.Server {
       this.resultsFallbackTimeout = null;
     }
     this.phase = "lobby";
-    for (const p of this.players.values()) {
-      p.ready = false;
-    }
     const toRemove: string[] = [];
     for (const [id, p] of this.players) {
       if (!p.connected) toRemove.push(id);

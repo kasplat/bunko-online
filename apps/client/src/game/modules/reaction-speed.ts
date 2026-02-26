@@ -1,4 +1,5 @@
 import type { ClientGameModule } from "../game-renderer";
+import { audioManager } from "../../audio";
 
 const FALSE_START = -1;
 
@@ -76,7 +77,6 @@ export class ReactionSpeedClientModule
   private handleClick: (() => void) | null = null;
   private currentSubtitle: string | null = null;
   private lastSubtitleTime: number | undefined = undefined;
-  private goSound: HTMLAudioElement | null = null;
   private playedGoSound = false;
 
   mount(
@@ -89,8 +89,6 @@ export class ReactionSpeedClientModule
     this.sendInput = sendInput;
     this.getPlayerId = getPlayerId;
     this.tapped = false;
-    this.goSound = new Audio("/boing.mp3");
-    this.goSound.preload = "auto";
 
     container.innerHTML = `
       <div class="reaction-game">
@@ -202,15 +200,6 @@ export class ReactionSpeedClientModule
 
     const zone = container.querySelector(".reaction-zone");
     this.handleClick = () => {
-      // Unlock audio on first user interaction (browser autoplay policy)
-      if (this.goSound) {
-        this.goSound.volume = 0;
-        this.goSound.play().then(() => {
-          this.goSound!.pause();
-          this.goSound!.currentTime = 0;
-          this.goSound!.volume = 1;
-        }).catch(() => {});
-      }
       if (this.tapped || !this.state || this.state.roundOver || this.state.finished) return;
       this.tapped = true;
       this.sendInput?.({ action: "tap" });
@@ -294,10 +283,9 @@ export class ReactionSpeedClientModule
     } else if (this.state.signalShown) {
       zone.classList.add("go");
       label.textContent = "TAP!";
-      if (!this.playedGoSound && this.goSound) {
+      if (!this.playedGoSound) {
         this.playedGoSound = true;
-        this.goSound.currentTime = 0;
-        this.goSound.play().catch(() => {});
+        audioManager.play("/boing.mp3");
       }
     } else {
       zone.classList.add("waiting");

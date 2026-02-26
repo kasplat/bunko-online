@@ -5,6 +5,7 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { LobbyScreen } from "./screens/LobbyScreen";
 import { GameScreen } from "./screens/GameScreen";
 import { ResultsScreen } from "./screens/ResultsScreen";
+import { VolumeControl } from "./components/VolumeControl";
 import { generateRoomCode } from "@bunko/shared";
 
 export function App() {
@@ -59,6 +60,7 @@ export function App() {
 
   return (
     <div className="app">
+      <VolumeControl />
       {error && <div className="error-toast">{error}</div>}
       {roomState.phase === "lobby" && (
         <LobbyScreen
