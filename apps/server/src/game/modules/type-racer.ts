@@ -3,15 +3,22 @@ import { GAME_META } from "@bunko/shared";
 import type { ServerGameModule } from "../game-engine.js";
 
 const SHORT_PASSAGES = [
-  "The quick brown fox jumps over the lazy dog.",
-  "How vexingly quick daft zebras jump.",
-  "Pack my box with five dozen liquor jugs.",
-  "Six big juicy steaks sizzled in the pan.",
-  "The job requires extra pluck and zeal.",
+  "Bunko is love bunko is life.",
+  "I had a dream about farting loudly. Bunko saved me from the dream.",
+  "Did you hear the news? Bunko killed Steve Jobs with ligma balls.",
+  "Suck my balls and wipe them dry I'm going to space and you can't stop me.",
+  "Bunko tokens are officially live! Get yours now at Bunkoissexy.com.",
+  "I would dump my girlfriend for Bunko.",
+  "there is no end to dickcore - dickcore is deep.",
+  "Friendship ended with Netflix and chill, now it's rockband and grill",
+  "have you tried crumpets yet they're really good",
+  "Bunko farted but it wasn't just a fart. It was a shart. Move back two spaces.",
+  "Bunkos balls itch. Move back twelve spaces.",
+
 ];
 
 const MEDIUM_PASSAGES = [
-  "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.",
+  "Did you know Bunko is one of the few animals that can control their atoms, basically making them immortal?",
   "How vexingly quick daft zebras jump. The five boxing wizards jump quickly at dawn.",
   "Amazingly few discotheques provide jukeboxes. Crazy Frederick bought many very exquisite opal jewels.",
   "The wizard quickly jinxed the gnomes before they vaporized. Six big juicy steaks sizzled in the pan.",
@@ -19,7 +26,7 @@ const MEDIUM_PASSAGES = [
 ];
 
 const LONG_PASSAGES = [
-  "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump. The five boxing wizards jump quickly at dawn.",
+  "My favourite pass time is to post creepy images onto my Twitter/bluesky and delete it a minute later to confuse the few people that saw it. Sometimes I get dms asking about it and gaslight them saying \"I never posted or delete anything wut u mean?\"",
   "Amazingly few discotheques provide jukeboxes. Crazy Frederick bought many very exquisite opal jewels. The wizard quickly jinxed the gnomes before they vaporized. Six big juicy steaks sizzled in the pan.",
   "We promptly judged antique ivory buckles for the next prize. A quart jar of oil mixed with zinc oxide makes a bright paint. Grumpy wizards make toxic brew for the evil queen and jack. The job requires extra pluck and zeal.",
 ];
