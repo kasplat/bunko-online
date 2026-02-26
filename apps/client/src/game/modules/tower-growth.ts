@@ -10,6 +10,8 @@ interface TowerPlayerState {
   height: number;
   tapCount: number;
   penaltyCount: number;
+  finished: boolean;
+  finishPosition: number; // 0 = not finished, 1 = 1st, etc.
 }
 
 interface TowerState {
@@ -17,7 +19,7 @@ interface TowerState {
   lightColor: "green" | "red";
   targetHeight: number;
   finished: boolean;
-  winnerId: string | null;
+  finishOrder: string[];
 }
 
 const TOWER_COLORS = [
@@ -32,6 +34,8 @@ const TOWER_COLORS = [
   "#e74c3c",
   "#2ecc71",
 ];
+
+const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
 export class TowerGrowthClientModule
   implements ClientGameModule<TowerState, { action: "tap" }, TowerConfig>
@@ -144,42 +148,54 @@ export class TowerGrowthClientModule
         z-index: 1;
       }
       .tower-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        position: relative;
         flex: 1;
         max-width: 80px;
         min-width: 30px;
       }
       .tower-bar-wrapper {
-        width: 100%;
-        height: 90%;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
+        position: absolute;
+        top: 10%;
+        bottom: 20px;
+        left: 20%;
+        right: 20%;
       }
       .tower-bar {
-        width: 60%;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
         min-height: 2px;
         border-radius: 4px 4px 0 0;
         transition: height 0.1s ease-out;
       }
-      .tower-bar.winner {
+      .tower-bar.done {
         animation: tower-pulse 0.5s ease-in-out infinite alternate;
+      }
+      .tower-position {
+        position: absolute;
+        top: -18px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #f5a623;
       }
       @keyframes tower-pulse {
         from { opacity: 1; }
         to { opacity: 0.6; }
       }
       .tower-name {
+        position: absolute;
+        bottom: 2px;
+        left: 0;
+        right: 0;
         font-size: 0.7rem;
-        margin-top: 4px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 100%;
         text-align: center;
-        padding-bottom: 4px;
       }
       .tower-name.me {
         color: #e94560;
@@ -242,6 +258,9 @@ export class TowerGrowthClientModule
 
   private tap() {
     if (!this.state || this.state.finished) return;
+    const myId = this.getPlayerId?.() ?? "";
+    const me = this.state.players.find((p) => p.id === myId);
+    if (me?.finished) return;
     this.sendInput?.({ action: "tap" });
   }
 
@@ -249,6 +268,7 @@ export class TowerGrowthClientModule
     if (!this.container || !this.state) return;
 
     const myId = this.getPlayerId?.() ?? "";
+    const me = this.state.players.find((p) => p.id === myId);
 
     // Update light
     const light = this.container.querySelector(".tower-light");
@@ -260,16 +280,15 @@ export class TowerGrowthClientModule
     const instruction = this.container.querySelector(".tower-instruction");
     if (instruction) {
       if (this.state.finished) {
-        if (this.state.winnerId) {
-          const winner = this.state.players.find(
-            (p) => p.id === this.state!.winnerId,
-          );
-          instruction.textContent = winner
-            ? `${escapeHtml(winner.name)} wins!`
-            : "Game Over!";
-        } else {
-          instruction.textContent = "Time's up!";
-        }
+        const winner = this.state.finishOrder.length > 0
+          ? this.state.players.find((p) => p.id === this.state!.finishOrder[0])
+          : null;
+        instruction.textContent = winner
+          ? `${escapeHtml(winner.name)} wins!`
+          : "Time's up!";
+      } else if (me?.finished) {
+        const pos = ORDINALS[me.finishPosition - 1] ?? `#${me.finishPosition}`;
+        instruction.textContent = `You finished ${pos}! Waiting for others...`;
       } else if (this.state.lightColor === "green") {
         instruction.textContent = "TAP NOW!";
       } else {
@@ -287,13 +306,17 @@ export class TowerGrowthClientModule
           const pct = Math.min(100, (p.height / targetHeight) * 100);
           const color = TOWER_COLORS[i % TOWER_COLORS.length];
           const isMe = p.id === myId;
-          const isWinner = p.id === this.state!.winnerId;
+          const posLabel = p.finishPosition > 0
+            ? ORDINALS[p.finishPosition - 1] ?? `#${p.finishPosition}`
+            : "";
 
           return `
             <div class="tower-col">
               <div class="tower-bar-wrapper">
-                <div class="tower-bar ${isWinner ? "winner" : ""}"
-                     style="height: ${pct}%; background: ${color};"></div>
+                <div class="tower-bar ${p.finished ? "done" : ""}"
+                     style="height: ${pct}%; background: ${color};">
+                  ${posLabel ? `<div class="tower-position">${posLabel}</div>` : ""}
+                </div>
               </div>
               <div class="tower-name ${isMe ? "me" : ""}">${escapeHtml(p.name)}</div>
             </div>
@@ -302,12 +325,12 @@ export class TowerGrowthClientModule
         .join("");
     }
 
-    // Hide tap zone when game is over
+    // Hide tap zone when current player finished or game is over
     const tapZone = this.container.querySelector(
       ".tower-tap-zone",
     ) as HTMLElement | null;
     if (tapZone) {
-      tapZone.style.display = this.state.finished ? "none" : "";
+      tapZone.style.display = (this.state.finished || me?.finished) ? "none" : "";
     }
   }
 }
