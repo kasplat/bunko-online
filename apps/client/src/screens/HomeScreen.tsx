@@ -56,7 +56,10 @@ export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
       <div className="actions">
         <button
           disabled={!name.trim()}
-          onClick={() => onCreateRoom(name.trim())}
+          onClick={() => {
+            audioManager.play("/create-room.mp3");
+            onCreateRoom(name.trim());
+          }}
         >
           Create Room
         </button>

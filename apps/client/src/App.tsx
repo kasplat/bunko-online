@@ -40,55 +40,54 @@ export function App() {
   }, [send]);
 
   // Screen routing based on room phase
+  let content;
   if (!roomCode) {
-    return (
-      <div className="app">
-        <HomeScreen onCreateRoom={handleCreate} onJoinRoom={handleJoin} />
+    content = <HomeScreen onCreateRoom={handleCreate} onJoinRoom={handleJoin} />;
+  } else if (!roomState) {
+    content = (
+      <div className="screen">
+        <p>{connected ? "Joining room..." : "Connecting..."}</p>
       </div>
     );
-  }
-
-  if (!roomState) {
-    return (
-      <div className="app">
-        <div className="screen">
-          <p>{connected ? "Joining room..." : "Connecting..."}</p>
-        </div>
-      </div>
+  } else {
+    content = (
+      <>
+        {error && <div className="error-toast">{error}</div>}
+        {roomState.phase === "lobby" && (
+          <LobbyScreen
+            roomState={roomState}
+            myId={myId}
+            send={send}
+            onLeave={handleLeave}
+          />
+        )}
+        {(roomState.phase === "countdown" || roomState.phase === "playing") && (
+          <GameScreen
+            roomState={roomState}
+            gameConfig={gameConfig}
+            myId={myId}
+            send={send}
+            subscribe={subscribe}
+          />
+        )}
+        {roomState.phase === "results" && (
+          <ResultsScreen
+            results={gameResults}
+            sessionScores={roomState.sessionScores}
+            players={roomState.players}
+            myId={myId}
+            hostId={roomState.hostId}
+            send={send}
+          />
+        )}
+      </>
     );
   }
 
   return (
     <div className="app">
       <VolumeControl />
-      {error && <div className="error-toast">{error}</div>}
-      {roomState.phase === "lobby" && (
-        <LobbyScreen
-          roomState={roomState}
-          myId={myId}
-          send={send}
-          onLeave={handleLeave}
-        />
-      )}
-      {(roomState.phase === "countdown" || roomState.phase === "playing") && (
-        <GameScreen
-          roomState={roomState}
-          gameConfig={gameConfig}
-          myId={myId}
-          send={send}
-          subscribe={subscribe}
-        />
-      )}
-      {roomState.phase === "results" && (
-        <ResultsScreen
-          results={gameResults}
-          sessionScores={roomState.sessionScores}
-          players={roomState.players}
-          myId={myId}
-          hostId={roomState.hostId}
-          send={send}
-        />
-      )}
+      {content}
     </div>
   );
 }
