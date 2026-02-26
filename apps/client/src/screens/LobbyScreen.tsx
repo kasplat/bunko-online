@@ -1,5 +1,12 @@
+import { useRef } from "react";
 import type { S2C_RoomState, ClientMessagePayload } from "@bunko/shared";
 import { getAvailableGames } from "../game/game-registry";
+
+const GAME_SOUNDS: Record<string, string> = {
+  "type-racer": "/click.mp3",
+  "tower-growth": "/splat.mp3",
+  "reaction-speed": "/boing.mp3",
+};
 
 interface Props {
   roomState: S2C_RoomState;
@@ -14,6 +21,7 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
   const allReady = roomState.players.every((p) => p.ready);
   const games = getAvailableGames();
   const hasScores = Object.values(roomState.sessionScores).some((s) => s > 0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const leaderboard = roomState.players
     .map((p) => ({ name: p.name, id: p.id, score: roomState.sessionScores[p.id] ?? 0 }))
@@ -57,9 +65,19 @@ export function LobbyScreen({ roomState, myId, send, onLeave }: Props) {
                   <button
                     key={g.gameId}
                     className={`game-option ${roomState.selectedGameId === g.gameId ? "selected" : ""}`}
-                    onClick={() =>
-                      send({ type: "c2s:select_game", gameId: g.gameId })
-                    }
+                    onClick={() => {
+                      const soundUrl = GAME_SOUNDS[g.gameId];
+                      if (soundUrl) {
+                        if (!audioRef.current) {
+                          audioRef.current = new Audio(soundUrl);
+                        } else {
+                          audioRef.current.src = soundUrl;
+                        }
+                        audioRef.current.currentTime = 0;
+                        audioRef.current.play().catch(() => {});
+                      }
+                      send({ type: "c2s:select_game", gameId: g.gameId });
+                    }}
                   >
                     <strong>{g.displayName}</strong>
                     <span>{g.description}</span>
