@@ -9,12 +9,16 @@ const MAX_LIGHT_DURATION_MS = 5000;
 const MAX_DURATION_MS = 120_000;
 const MIN_HEIGHT = 0;
 
+// Mario Kart / F1-inspired decreasing point table (up to 10 players)
+const SCORE_TABLE = [100, 80, 65, 55, 45, 38, 32, 27, 23, 20];
+
 interface PlayerState {
   id: string;
   name: string;
   height: number;
   tapCount: number;
   penaltyCount: number;
+  finished: boolean;
 }
 
 interface TowerState {
@@ -25,7 +29,7 @@ interface TowerState {
   targetHeight: number;
   startedAt: number;
   finished: boolean;
-  winnerId: string | null;
+  finishOrder: string[];
 }
 
 interface TowerConfig {
@@ -43,11 +47,13 @@ interface TowerBroadcast {
     height: number;
     tapCount: number;
     penaltyCount: number;
+    finished: boolean;
+    finishPosition: number;
   }>;
   lightColor: "green" | "red";
   targetHeight: number;
   finished: boolean;
-  winnerId: string | null;
+  finishOrder: string[];
 }
 
 export class TowerGrowthModule
@@ -67,6 +73,7 @@ export class TowerGrowthModule
         height: 0,
         tapCount: 0,
         penaltyCount: 0,
+        finished: false,
       });
     }
 
@@ -86,7 +93,7 @@ export class TowerGrowthModule
         targetHeight,
         startedAt: now,
         finished: false,
-        winnerId: null,
+        finishOrder: [],
       },
       config: { targetHeight },
     };
@@ -98,6 +105,7 @@ export class TowerGrowthModule
 
     const player = state.players.get(playerId);
     if (!player) return state;
+    if (player.finished) return state;
 
     if (state.lightColor === "green") {
       player.height += GROWTH_PER_TAP;
@@ -105,8 +113,9 @@ export class TowerGrowthModule
 
       if (player.height >= state.targetHeight) {
         player.height = state.targetHeight;
-        state.finished = true;
-        state.winnerId = playerId;
+        player.finished = true;
+        state.finishOrder.push(playerId);
+        checkGameEnd(state);
       }
     } else {
       player.height = Math.max(MIN_HEIGHT, player.height - SHRINK_PER_TAP);
@@ -128,6 +137,14 @@ export class TowerGrowthModule
     }
 
     if (now - state.startedAt >= MAX_DURATION_MS) {
+      // Timeout: add unfinished players sorted by height desc
+      const unfinished = [...state.players.values()]
+        .filter((p) => !p.finished)
+        .sort((a, b) => b.height - a.height);
+      for (const p of unfinished) {
+        p.finished = true;
+        state.finishOrder.push(p.id);
+      }
       state.finished = true;
     }
 
@@ -144,6 +161,8 @@ export class TowerGrowthModule
       height: p.height,
       tapCount: p.tapCount,
       penaltyCount: p.penaltyCount,
+      finished: p.finished,
+      finishPosition: state.finishOrder.indexOf(p.id) + 1, // 0 = not finished
     }));
 
     return {
@@ -152,7 +171,7 @@ export class TowerGrowthModule
         lightColor: state.lightColor,
         targetHeight: state.targetHeight,
         finished: state.finished,
-        winnerId: state.winnerId,
+        finishOrder: state.finishOrder,
       },
       isDelta: false,
     };
@@ -163,31 +182,22 @@ export class TowerGrowthModule
   }
 
   getResults(state: TowerState): GameResult[] {
-    const players = [...state.players.values()];
-
-    players.sort((a, b) => {
-      if (a.id === state.winnerId) return -1;
-      if (b.id === state.winnerId) return 1;
-      return b.height - a.height;
-    });
-
-    return players.map((p, i) => {
-      let score: number;
-      if (p.id === state.winnerId) {
-        score = 100;
-      } else {
-        score = Math.max(10, Math.round((p.height / state.targetHeight) * 80));
-      }
+    return state.finishOrder.map((id, i) => {
+      const player = state.players.get(id)!;
+      const score =
+        i < SCORE_TABLE.length
+          ? SCORE_TABLE[i]
+          : SCORE_TABLE[SCORE_TABLE.length - 1];
 
       return {
-        playerId: p.id,
-        playerName: p.name,
+        playerId: player.id,
+        playerName: player.name,
         score,
         rank: i + 1,
         stats: {
-          height: p.height,
-          tapCount: p.tapCount,
-          penaltyCount: p.penaltyCount,
+          height: player.height,
+          tapCount: player.tapCount,
+          penaltyCount: player.penaltyCount,
         },
       };
     });
@@ -195,6 +205,18 @@ export class TowerGrowthModule
 
   onPlayerDisconnect(state: TowerState, _playerId: string): TowerState {
     return state;
+  }
+}
+
+function checkGameEnd(state: TowerState): void {
+  const unfinished = [...state.players.values()].filter((p) => !p.finished);
+  if (unfinished.length === 0) {
+    state.finished = true;
+  } else if (unfinished.length === 1) {
+    // Last player standing — auto-place them last
+    unfinished[0].finished = true;
+    state.finishOrder.push(unfinished[0].id);
+    state.finished = true;
   }
 }
 
