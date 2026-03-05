@@ -43,7 +43,6 @@ export function usePartySocket(roomCode: string | null, playerName: string) {
     return () => {
       socket.close();
       socketRef.current = null;
-      handlersRef.current.clear();
       setConnected(false);
     };
   }, [roomCode, playerName]);

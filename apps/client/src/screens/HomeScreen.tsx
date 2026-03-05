@@ -7,6 +7,17 @@ const SUBTITLES = [
   "Go touch grass",
 ];
 
+const DEFAULT_NAMES = [
+  "Monkey",
+  "Donkey",
+  "Banana",
+  "Chimp",
+  "Gorilla",
+  "Bonobo",
+  "Gibbon",
+  "Baboon",
+];
+
 const GIFS = [
   "https://media.tenor.com/Tq2fqZg90pUAAAAi/monkey-dance.gif",
   "https://media1.tenor.com/m/Bh6YThOUYC4AAAAC/funny-monkey-everyday-monkey-dancing.gif",
@@ -23,6 +34,10 @@ interface Props {
 export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
   const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
+  const defaultName = useMemo(
+    () => DEFAULT_NAMES[Math.floor(Math.random() * DEFAULT_NAMES.length)],
+    [],
+  );
   const subtitle = useMemo(
     () => SUBTITLES[Math.floor(Math.random() * SUBTITLES.length)],
     [],
@@ -43,7 +58,7 @@ export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
       <p style={{ opacity: 0.6, fontStyle: "italic", marginTop: -8 }}>{subtitle}</p>
       <input
         type="text"
-        placeholder="Your name"
+        placeholder={defaultName}
         value={name}
         onChange={(e) => {
           if (e.target.value.length > name.length) {
@@ -55,10 +70,9 @@ export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
       />
       <div className="actions">
         <button
-          disabled={!name.trim()}
           onClick={() => {
             audioManager.play("/create-room.mp3");
-            onCreateRoom(name.trim());
+            onCreateRoom(name.trim() || defaultName);
           }}
         >
           Create Room
@@ -72,8 +86,8 @@ export function HomeScreen({ onCreateRoom, onJoinRoom }: Props) {
             maxLength={4}
           />
           <button
-            disabled={!name.trim() || roomCode.length < 4}
-            onClick={() => onJoinRoom(name.trim(), roomCode)}
+            disabled={roomCode.length < 4}
+            onClick={() => onJoinRoom(name.trim() || defaultName, roomCode)}
           >
             Join
           </button>

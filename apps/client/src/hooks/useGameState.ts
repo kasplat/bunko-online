@@ -7,12 +7,20 @@ import type {
 
 type MessageHandler = (msg: ServerMessage) => void;
 
-export function useGameState(subscribe: (handler: MessageHandler) => () => void) {
+export function useGameState(subscribe: (handler: MessageHandler) => () => void, roomCode: string | null) {
   const [roomState, setRoomState] = useState<S2C_RoomState | null>(null);
   const [gameConfig, setGameConfig] = useState<{ gameId: string; config: unknown; countdownSecs: number } | null>(null);
   const [gameResults, setGameResults] = useState<GameResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset all state when room changes (e.g. leave and rejoin)
+  useEffect(() => {
+    setRoomState(null);
+    setGameConfig(null);
+    setGameResults(null);
+    setError(null);
+  }, [roomCode]);
 
   useEffect(() => {
     return subscribe((msg) => {

@@ -13,7 +13,7 @@ export function App() {
   const [roomCode, setRoomCode] = useState<string | null>(null);
   const { send, subscribe, connected } = usePartySocket(roomCode, playerName);
   const { roomState, gameConfig, gameResults, error } =
-    useGameState(subscribe);
+    useGameState(subscribe, roomCode);
 
   // Server sends yourId in every room state update
   const myId = roomState?.yourId ?? null;
