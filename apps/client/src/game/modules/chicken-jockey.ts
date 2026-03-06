@@ -237,12 +237,13 @@ export class ChickenJockeyClientModule
 
       if (leftEl) {
         const pct = Math.min(50, (me.distance / halfLane) * 50);
-        leftEl.style.left = `${pct}%`;
+        // Offset by box width (36px) so front edge = position
+        leftEl.style.left = `calc(${pct}% - ${(pct / 50) * 36}px)`;
         leftEl.className = `chicken-player chicken-left${me.braking ? " braking" : ""}${me.stopped ? " stopped" : ""}${me.crashed ? " crashed" : ""}`;
       }
       if (rightEl) {
         const pct = Math.min(50, (opp.distance / halfLane) * 50);
-        rightEl.style.right = `${pct}%`;
+        rightEl.style.right = `calc(${pct}% - ${(pct / 50) * 36}px)`;
         rightEl.className = `chicken-player chicken-right${opp.braking ? " braking" : ""}${opp.stopped ? " stopped" : ""}${opp.crashed ? " crashed" : ""}`;
       }
 
