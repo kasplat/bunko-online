@@ -43,6 +43,14 @@ export const GAME_META: Record<string, GameMeta> = {
     maxPlayers: 10,
     timing: { mode: "realtime", tickRate: 20, broadcastRate: 10, maxDurationSecs: 120 },
   },
+  "chicken-jockey": {
+    gameId: "chicken-jockey",
+    displayName: "Chicken Jockey",
+    description: "Drive toward your opponent — brake before you crash!",
+    minPlayers: 2,
+    maxPlayers: 10,
+    timing: { mode: "realtime", tickRate: 20, broadcastRate: 10, maxDurationSecs: 30 },
+  },
 };
 
 export function getAvailableGames(): GameMeta[] {
